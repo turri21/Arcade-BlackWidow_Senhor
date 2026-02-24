@@ -1,3 +1,11 @@
+-=(BlackWidow_Senhor notes)=-
+
+Tested: Working Video 720p, 1080p & Sound.
+
+Dev notes: Clocks swapped in sys.tcl (not needed any more)
+
+___
+
 # Black Widow
 
 FPGA implementation of [Atari Black Widow](http://spritesmods.com/?art=bwidow_fpga) by Jeroen Domburg with help from james10952001 
