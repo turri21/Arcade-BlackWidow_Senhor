@@ -183,6 +183,7 @@ reg				reading_scores = 1'b0;				// Is state machine currently reading game RAM 
 reg				writing_scores = 1'b0;				// Is state machine currently restoring hiscore data to game RAM
 
 reg	[3:0]		initialised;						// Number of times state machine has been initialised (debug only)
+reg	[24:0]							ram_addr;					// Declared before continuous-assignment users for ModelSim compatibility.
 
 assign configured = downloaded_config;
 assign downloading_config = ioctl_download && (ioctl_index==HS_CONFIGINDEX);
@@ -212,7 +213,6 @@ reg	[7:0]								last_data_from_hps2;		// Last cycle +1 HPS IO data out
 reg	[7:0]								last_data_from_hps3;		// Last cycle +2 HPS IO data out
 reg										last_OSD_STATUS;			// Last cycle OSD status
 
-reg	[24:0]							ram_addr;					// Target RAM address for hiscore read/write
 reg	[24:0]							base_io_addr;
 wire	[23:0]							addr_base /* synthesis keep */;
 wire	[(CFG_LENGTHWIDTH*8)-1:0]	length;
@@ -240,7 +240,8 @@ assign length_data_in = (CFG_LENGTHWIDTH == 1'b1) ? data_from_hps : {last_data_f
 
 wire parsing_config = ~(parsing_header | parsing_mask); // Hiscore config lines are being parsed
 
-wire [CFG_ADDRESSWIDTH-1:0] config_upload_addr = ioctl_addr[CFG_ADDRESSWIDTH+2:3] - (9'd2 + CHANGEMASK[7:3]) /* synthesis keep */;
+wire [8:0] config_upload_addr_wide = ioctl_addr[CFG_ADDRESSWIDTH+2:3] - (9'd2 + CHANGEMASK[7:3]);
+wire [CFG_ADDRESSWIDTH-1:0] config_upload_addr = config_upload_addr_wide[CFG_ADDRESSWIDTH-1:0] /* synthesis keep */;
 
 wire address_we = downloading_config & parsing_config & (ioctl_addr[2:0] == 3'd3);
 wire length_we = downloading_config & parsing_config & (ioctl_addr[2:0] == 3'd3 + CFG_LENGTHWIDTH);

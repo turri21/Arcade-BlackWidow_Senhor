@@ -59,7 +59,7 @@ rom_vb_cs <= '1' when dn_addr(15 downto 12) = "0111"     else '0';
 rom_vc_cs <= '1' when dn_addr(15 downto 12) = "1000"     else '0';
 rom_vd_cs <= '1' when dn_addr(15 downto 12) = "1001"     else '0';
 
-roma : work.dpram generic map (12,8)
+roma : entity work.dpram generic map (12,8)
 port map
 (
 	clock_a   => clk,
@@ -73,7 +73,7 @@ port map
 	address_b => addr(11 downto 0),
 	q_b       => dataa
 );	  
-romb : work.dpram generic map (12,8)
+romb : entity work.dpram generic map (12,8)
 port map
 (
 	clock_a   => clk,
@@ -85,7 +85,7 @@ port map
 	address_b => addr(11 downto 0),
 	q_b       => datab
 );	  
-romc : work.dpram generic map (12,8)
+romc : entity work.dpram generic map (12,8)
 port map
 (
 	clock_a   => clk,
@@ -97,7 +97,7 @@ port map
 	address_b => addr(11 downto 0),
 	q_b       => datac
 );	  
-romd : work.dpram generic map (12,8)
+romd : entity work.dpram generic map (12,8)
 port map
 (
 	clock_a   => clk,
