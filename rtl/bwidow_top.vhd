@@ -1,5 +1,5 @@
 --
--- A simulation model of Asteroids Deluxe hardware
+-- Black Widow game wrapper derived from the Asteroids Deluxe model.
 -- Copyright (c) MikeJ - May 2004
 --
 -- All rights reserved
@@ -41,18 +41,6 @@
 -- version 001 initial release
 --
 
-    --
-    -- Notes :
-    --
-    -- Button shorts input to ground when pressed
-	 -- 
-	 -- ToDo:
-			-- Model sound effects for thump-thump, ship and saucer fire and saucer warble 
-			-- Add player control switching and screen flip for cocktail mode 
-			-- General cleanup
-
-
-
 library ieee;
   use ieee.std_logic_1164.all;
   use ieee.std_logic_arith.all;
@@ -60,47 +48,35 @@ library ieee;
 
 entity BWIDOW_TOP is
   port (
-    BUTTON            : in std_logic_vector(14 downto 0); -- active low
-	 
     SW_B4				 : in std_logic_vector(7 downto 0);
     SW_D4				 : in std_logic_vector(7 downto 0);
 	 
     input_0           : in  std_logic_vector( 7 downto 0);
-	 --input_1        : in  std_logic_vector( 7 downto 0);
-	 --input_2        : in  std_logic_vector( 7 downto 0);
     input_3           : in  std_logic_vector( 7 downto 0);
     input_4           : in  std_logic_vector( 7 downto 0);
 
-	 
-    --LANG              : in std_logic_vector(1 downto 0);
-    --SHIPS             : in std_logic_vector(1 downto 0);
     AUDIO_OUT         : out   std_logic_vector(7 downto 0);
-    --SELF_TEST_SWITCH_L: in		std_logic; 
 
     dn_addr           : in std_logic_vector(15 downto 0);
     dn_data           : in std_logic_vector(7 downto 0);
     dn_wr					: in std_logic;
     
-    VIDEO_R_OUT       : out   std_logic_vector(3 downto 0);
-    VIDEO_G_OUT       : out   std_logic_vector(3 downto 0);
-    VIDEO_B_OUT       : out   std_logic_vector(3 downto 0);
-
-    HSYNC_OUT         : out   std_logic;
-    VSYNC_OUT         : out   std_logic;
-    VGA_DE					: out std_logic;
-    VID_HBLANK	      : out std_logic;
-    VID_VBLANK        : out std_logic;
+    AVG_X_OUT         : out std_logic_vector(13 downto 0);
+    AVG_Y_OUT         : out std_logic_vector(13 downto 0);
+    AVG_Z_OUT         : out std_logic_vector(7 downto 0);
+    AVG_RGB_OUT       : out std_logic_vector(2 downto 0);
+    AVG_IS_DOT_OUT    : out std_logic;
+    AVG_HALTED_OUT    : out std_logic;
 
 	RESET_L           : in    std_logic;
 
 	pause_h				: in    std_logic;
 
-    -- ref clock in
+    -- Game clocks
     clk_6	      :  in  std_logic;
     clk_12            :  in  std_logic;
-    clk_50            :  in  std_logic;
 
-	 -- HISCORE
+	 -- Hiscore interface
 	hs_address   : in  std_logic_vector(15 downto 0);
 	hs_data_out  : out std_logic_vector(7 downto 0);
 	hs_data_in   : in  std_logic_vector(7 downto 0);
@@ -110,57 +86,25 @@ entity BWIDOW_TOP is
 end;
 
 architecture RTL of BWIDOW_TOP is
-
-	signal RAM_ADDR_A        :   std_logic_vector(18 downto 0);
-   signal RAM_ADDR_B        :   std_logic_vector(15 downto 0); -- same as above
-   signal RAM_WE_L          :   std_logic;
-   signal RAM_ADV_L         :   std_logic;
-   signal RAM_OE_L          :   std_logic;
-   signal RAM_DO           :  std_logic_vector(31 downto 0);
-	signal RAM_DI           :  std_logic_vector(31 downto 0);
-	signal ram_we          :   std_logic;
-	
-  signal reset_dll_h          : std_logic;
-
   signal delay_count          : std_logic_vector(7 downto 0) := (others => '0');
   signal reset_6_l            : std_logic;
-  signal reset_6              : std_logic;
 
-  signal clk_cnt              : std_logic_vector(2 downto 0) := "000";
-
-  signal x_vector             : std_logic_vector(9 downto 0);
-  signal y_vector             : std_logic_vector(9 downto 0);
+  signal x_vector14           : std_logic_vector(13 downto 0);
+  signal y_vector14           : std_logic_vector(13 downto 0);
   signal z_vector             : std_logic_vector(7 downto 0);
-  signal beam_on              : std_logic;
-  signal beam_ena             : std_logic;
-
-  signal ram_addr_int         : std_logic_vector(18 downto 0);
-  signal ram_we_l_int         : std_logic;
-  signal ram_adv_l_int        : std_logic;
-  signal ram_oe_l_int         : std_logic;
-  signal ram_dout_oe_l        : std_logic;
-  signal ram_dout_oe_l_reg    : std_logic;
-  signal ram_dout             : std_logic_vector(31 downto 0);
-  signal ram_dout_reg         : std_logic_vector(31 downto 0);
-  signal ram_din              : std_logic_vector(31 downto 0);
+  signal avg_is_dot           : std_logic;
+  signal avg_halted           : std_logic;
 
   signal rgb	:			STD_LOGIC_VECTOR(2 downto 0);
 
 begin
 
-  --
-  -- Note about clocks
-  --
-  -- (the original uses a 6.048 MHz clock, so 40 / 6  - slightly slower)
-  --
-
-  reset_dll_h <= not RESET_L;
-  reset_6 <= reset_dll_h;
+  -- Hold the game core in reset for 256 clk_6 cycles.
 
   p_delay : process(RESET_L, clk_6)
   begin
     if (RESET_L = '0') then
-      delay_count <= x"00"; -- longer delay for cpu
+      delay_count <= x"00";
       reset_6_l <= '0';
     elsif rising_edge(clk_6) then
       if (delay_count(7 downto 0) = (x"FF")) then
@@ -178,18 +122,16 @@ begin
 		reset_h          => not reset_6_l,
 		pause_h 			  => pause_h,
 		analog_sound_out => AUDIO_OUT,
-		analog_x_out     => x_vector,
-		analog_y_out     => y_vector,
+		analog_x14_out   => x_vector14,
+		analog_y14_out   => y_vector14,
 		analog_z_out     => z_vector,
-                BEAM_ENA         => beam_ena,
 		rgb_out          => rgb,
+		is_dot_out       => avg_is_dot,
+		avg_halted_out   => avg_halted,
 		dbg              => open,
-		--buttons => button,
 		SW_B4            => SW_B4,
 		SW_D4            => SW_D4,
 		input_0          => input_0,
-		--input_1 => input_1,
-		--input_2 => input_2,
 		input_3          => input_3,
 		input_4          => input_4,
 		dn_addr          =>dn_addr,
@@ -200,34 +142,12 @@ begin
 		hs_data_in       =>hs_data_in,
 		hs_write         =>hs_write
 	);
-	
 
-  u_DW : entity work.BWIDOW_DW 
-    port map (
-      RESET           =>    reset_6,
-      PAUSE           =>    pause_h,
-      clk_50          =>    clk_50,
-      clk_12          =>    clk_12,
-
-      X_VECTOR        =>    not x_vector(9) & x_vector(8 downto 0),
-      Y_VECTOR        =>    not y_vector(9) & y_vector(8 downto 0),
-      --Z_VECTOR         => z_vector(3 downto 0) or z_vector(7 downto 4),
-      Z_VECTOR        =>    z_vector(7 downto 4),
-      RGB             =>    rgb,
-      --BEAM_ON          => beam_on,
-      BEAM_ENA        =>    beam_ena,
-      BEAM_ON         =>    rgb(0) or rgb(1) or rgb(2),
-
-     VIDEO_R_OUT      =>    VIDEO_R_OUT,
-     VIDEO_G_OUT      =>    VIDEO_G_OUT,
-     VIDEO_B_OUT      =>    VIDEO_B_OUT,
-     HSYNC_OUT        =>    HSYNC_OUT,
-     VSYNC_OUT        =>    VSYNC_OUT,
-     VID_DE	      =>    VGA_DE,
-     VID_HBLANK	      =>    VID_HBLANK,
-     VID_VBLANK	      =>    VID_VBLANK
-
-      );
-
+  AVG_X_OUT      <= x_vector14;
+  AVG_Y_OUT      <= y_vector14;
+  AVG_Z_OUT      <= z_vector;
+  AVG_RGB_OUT    <= rgb;
+  AVG_IS_DOT_OUT <= avg_is_dot;
+  AVG_HALTED_OUT <= avg_halted;
 
 end RTL;

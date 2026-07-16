@@ -29,14 +29,15 @@ use work.pkg_bwidow.all;
 entity bwidow is
   port(
 		reset_h   : in    std_logic;
-		clk			: in    std_logic; --12 MHz
+		clk			: in    std_logic; -- 12.096 MHz
 		pause_h   : in    std_logic;
 		analog_sound_out    : out std_logic_vector(7 downto 0);
-		analog_x_out    : out std_logic_vector(9 downto 0);
-		analog_y_out    : out std_logic_vector(9 downto 0);
+		analog_x14_out  : out std_logic_vector(13 downto 0);
+		analog_y14_out  : out std_logic_vector(13 downto 0);
 		analog_z_out    : out std_logic_vector(7 downto 0);
-		BEAM_ENA          : out   std_logic;
 		rgb_out    : out std_logic_vector(2 downto 0);
+		is_dot_out : out std_logic;
+		avg_halted_out : out std_logic;
 		--buttons				 : in std_logic_vector(14 downto 0);
 		SW_B4				 : in std_logic_vector(7 downto 0);
 		SW_D4				 : in std_logic_vector(7 downto 0);
@@ -108,7 +109,7 @@ begin
 		CS        => '1',
 		CS_L      => pokeya_cs_l,
 		AUDIO_OUT => pokeya_audio,
-		PIN       => SW_D4, -- dip free play?
+		PIN       => SW_D4, -- DIP bank D4
 		ENA       => ena_1_5M,
 		CLK       => clk
 	);
@@ -127,8 +128,9 @@ begin
 		CLK       => clk
 	);
 
-	cpu: T65 port map (
+	cpu: entity work.T65 port map (
 		Mode    => "00",
+		BCD_en  => '1',
 		Res_n   => reset_l,
 		Enable  => ena_1_5M,
 		Clk     => clk,
@@ -148,7 +150,10 @@ begin
 		VPA     => open,
 		A       => c_addr,
 		DI      => c_din,
-		DO      => c_dout
+		DO      => c_dout,
+		Regs    => open,
+		DEBUG   => open,
+		NMI_ack => open
 	);
 	
 	mypgmrom: pgmrom port map (
@@ -164,9 +169,8 @@ begin
 		addr_a		=> pgmram_addr,
 		data_in_a	=> c_dout,
 		data_out_a	=> pgmram_dout,
---		ena 	 		=> ena_1_5M, --doesn't work due to pipelining
 		ena_a			=> '1',
-		cs_l_a		=> pgmram_cs_l, -- no enable on Altera, hopefully this works
+		cs_l_a		=> pgmram_cs_l, -- Keep the RAM port clock-enabled.
 		rw_l_a 		=> c_rw_l,
 		clk_a			=> clk,
 		
@@ -184,7 +188,6 @@ begin
 		data_in	=> c_dout,
 		data_out => earom_dout,
 		addr		=> c_addr(5 downto 0),
---		we_l		=> c_wr_l,
 		write_l	=> earom_write_l,
 		con_l		=> earom_con_l
 	);
@@ -197,13 +200,14 @@ begin
 		cpu_addr => avgmem_addr(13 downto 0),
 		cpu_cs_l => avgmem_cs_l,
 		cpu_rw_l => c_rw_l,
-		vgrst => avg_rst,
+		vgrst => reset_h or avg_rst,
 		vggo => avg_go,
 		halted => avg_halted,
-		xout => analog_x_out,
-		yout => analog_y_out,
+		xout14 => analog_x14_out,
+		yout14 => analog_y14_out,
 		zout => analog_z_out,
 		rgbout => rgb_out,
+		is_dot_out => is_dot_out,
 		dbg => avg_dbg,
 		dn_addr =>dn_addr,
 		dn_data =>dn_data,
@@ -227,7 +231,7 @@ begin
 				pgmrom_dout	when c_addr(15)='1' else
 				"00000000";
 
-	-- Memory decoding: CPU writes
+	-- Memory-mapped selects and write strobes
 	pokeya_cs_l <= '0' when c_addr(15 downto 11)="01100" else '1';
 	pokeyb_cs_l <= '0' when c_addr(15 downto 11)="01101" else '1';
 	pgmram_cs_l <= '0' when c_addr(15 downto 11)="00000" else '1';
@@ -250,43 +254,19 @@ begin
 		end if;
 	end process;
 
---	dbg(15)<=clk;
---	dbg(14)<=ena_1_5M;
---	dbg(13)<=cnt_3khz(8);
---	dbg(12)<=intack_l;
---	dbg(11 downto 0)<=avg_dbg(15 downto 4);
---	dbg<=c_addr(15 downto 0);
---	dbg(7 downto 0)<=c_addr(7 downto 0);
---	dbg(15 downto 8)<=pgmram_dout;
 	dbg<=avg_dbg;
 	
 	analog_sound_out<=(("0"&pokeya_audio(7 downto 1))+("0"&pokeyb_audio(7 downto 1)));
 	
-	-- Memory decoding: offsets in address map
+	-- CPU-to-local address mapping
 	pgmrom_addr<=c_addr(15 downto 0);
---	avgmem_addr<=c_addr(15 downto 0)-x"002000"; 
-	avgmem_addr<= c_addr(15 downto 0)-"10000000000000"; -- broken
-	pgmram_addr(10)<=c_addr(10) xor latchout(2); --handle banksel
+	avgmem_addr<= c_addr(15 downto 0)-"10000000000000"; -- $2000-based AVG window
+	pgmram_addr(10)<=c_addr(10) xor latchout(2); -- Bank select
 	pgmram_addr(9 downto 0)<=c_addr(9 downto 0);
 	
-	--Misc stuff
+	-- Reset and CPU input latches
 	reset_l <= not reset_h;
 
-	--Latches
-	----buttons(14 downto 0): SELFTEST, SA, COINAUX COINL COINR START2 START1 FD FU FL FR MU MD ML MR
-	--latchin_c(7)<=cnt_3khz(8);
-	--latchin_c(6)<=avg_halted;
-	--latchin_c(5)<='1';--buttons(14); -- self test?
-	----latchin_c(4)<=buttons(14); -- self test? handled below
-	--latchin_c(3)<='1'; --nc
-	--latchin_c(2 downto 0)<=buttons(12 downto 10);
-	--latchin_b(7 downto 4)<="0000"; --option2-0, spare
-	--latchin_b(3 downto 0)<=buttons(3 downto 0);
-	--latchin_a(7)<='0'; --cabinet1
-	--latchin_a(6 downto 5)<=buttons(9 downto 8);
-	--latchin_a(4)<='0'; --spare
-	--latchin_a(3 downto 0)<=buttons(7 downto 4);
-	
 	latchin_c(7)<=cnt_3khz(8);
 	latchin_c(6)<=avg_halted;
 	latchin_c(5 downto 0)<=input_0(5 downto 0);
@@ -294,9 +274,9 @@ begin
 	latchin_a(7 downto 0)<=input_4(7 downto 0);
 		
 
-	c_irq_l<=not(irqctr(3) and irqctr(2)); --triggers irq 250 times per second.
+	c_irq_l<=not(irqctr(3) and irqctr(2)); -- Active-low divider IRQ.
 
-	--Clock divider to generate the 1.5MHz enable signal. Also handles the 3KHz counter and 250Hz interrupt.
+	-- Generate the 1.512 MHz CPU enable and service timer/IRQ counters.
 	process(clk) begin
 		if clk'EVENT and clk='1' then
 			clkdiv<=clkdiv+"001";
@@ -315,20 +295,7 @@ begin
 		end if;
 	end process;
 
-	--Handle service switch
---	process(clk) begin
---		if clk'EVENT and clk='1' then
---			if reset_h='1' then
---				latchin_c(4)<='1';
---			elsif (service_btnst='1' and buttons(13)='0') then
---				latchin_c(4)<=not latchin_c(4);
---			end if;
---			service_btnst<=buttons(13);
---		end if;
---	end process;
-	
-	
-	  BEAM_ENA <= ena_1_5m;
+	  avg_halted_out <= avg_halted;
 
 end Behaviour;
 

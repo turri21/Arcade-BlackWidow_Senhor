@@ -1,28 +1,39 @@
 # Black Widow
 
-FPGA implementation of [Atari Black Widow](http://spritesmods.com/?art=bwidow_fpga) by Jeroen Domburg with help from james10952001 
-Rasterizer by Dave Woo and fpgaarcade.com
-Port to MiSTer by Alan Steremberg
+FPGA implementation of Atari's **Black Widow**, with support for **Gravitar** and **Lunar Battle**, for the [MiSTer FPGA](https://github.com/MiSTer-devel/Main_MiSTer/wiki) platform.
 
-This game used two joysticks. If you hook it to an ipac/jpac style adapter, it will use joystick 1 and 2. You can use the MiSTer OSD to
-map the joystick buttons for the second joystick to the digital buttons on the gamepad.
+Based on the [original FPGA implementation](http://spritesmods.com/?art=bwidow_fpga) by Jeroen Domburg, with contributions from james10952001, Dave Woo, and fpgaarcade.com. Ported to MiSTer by Alan Steremberg.
 
-## Keyboard inputs :
-```
-   F1                        : Coin + Start 1P
-   F2                        : Coin + Start 2P
-   UP,DOWN,LEFT,RIGHT arrows : move spider
+This release adds a PROM-driven Atari Analog Vector Generator and a new Ultra High Performance Renderer with high-resolution output and CRT-style video effects.
 
-   MAME/IPAC/JPAC Style Keyboard inputs:
-     5           : Coin 1
-     6           : Coin 2
-     1           : Start 1 Player
-     2           : Start 2 Players
-     R,F,D,G     : Right joystick motion
-   
+## Requirements
 
- Joystick support. Make sure to setup the keys specifically for this. It will use 4 buttons for a second digital joypad.
-```
+The CRT-style effects pipeline requires a 32MB MiSTer SDRAM module or larger.
+
+When updating from an older release, delete the existing MiSTer config files for this core before first launch. Typically these are found under `/media/fat/config/`, but your setup may vary.
+
+Use the included MRA files so the DIP switches, auxiliary coin input, and diagnostic controls are mapped correctly.
+
+## Video
+
+The new renderer supports 240p, 480p, 720p, and 1080p output. **1080p is recommended** for the highest detail. Compatible 720p displays can also use the optional 120Hz mode.
+
+The **Profile** option provides five presets: A Touch of CRT, 80s Cruise Control, 80s Overdrive, Neon Fever Dream, and Pinktoe Tarantula. Custom 1 and Custom 2 expose the complete advanced effects controls, while Off bypasses the CRT effects.
+
+Pinktoe Tarantula uses the Toe color mode to give Black Widow's spider a distinctive pinktoe appearance.
+
+Aspect ratio options are Optimized, Stretched, and Pixel Perfect.
+
+> **Warning:** Neon Fever Dream and Pinktoe Tarantula feature excessive flashing bright lights.
+
+## Controls
+
+Black Widow uses independent directional controls for movement and firing. The **Fire** option selects how the four firing directions are mapped:
+
+- **Buttons**: Uses four assignable inputs on the Player 1 controller. These can be face buttons or directions on a second analog stick.
+- **Second Joystick**: Uses the directional input of a separate controller assigned as Player 2.
+
+Keyboard controls use MiSTer's joystick emulation and must be configured through **Define joystick buttons** in the Menu core. JAMMA/IPAC-style interfaces can use the standard arcade keyboard layout.
 
 ## Hiscore save/load
 

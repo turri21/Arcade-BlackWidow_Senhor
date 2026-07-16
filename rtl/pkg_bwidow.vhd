@@ -24,27 +24,6 @@ library ieee;
 
 package pkg_bwidow is
 
-component bwidow is
-  port(
-		reset_h   : in    std_logic;
-		clk			: in    std_logic; --12 MHz
-		analog_sound_out    : out std_logic_vector(7 downto 0);
-		analog_x_out    : out std_logic_vector(9 downto 0);
-		analog_y_out    : out std_logic_vector(9 downto 0);
-		analog_z_out    : out std_logic_vector(7 downto 0);
-		BEAM_ENA          : out   std_logic;
-		rgb_out    : out std_logic_vector(2 downto 0);
-		buttons				 : in std_logic_vector(14 downto 0);
-		SW_B4				 : in std_logic_vector(7 downto 0);
-		SW_D4				 : in std_logic_vector(7 downto 0);
-		dn_addr           : in 	std_logic_vector(15 downto 0);
-		dn_data         	 : in 	std_logic_vector(7 downto 0);
-		dn_wr				 : in 	std_logic	;
-		dbg				 : out std_logic_vector(15 downto 0)
-		);
-end component;
-
-
 component pgmrom is
     Port ( addr : in  STD_LOGIC_VECTOR (14 downto 0);
            data : out  STD_LOGIC_VECTOR (7 downto 0);
@@ -213,14 +192,15 @@ component avg is
            cpu_addr : in  STD_LOGIC_VECTOR (13 downto 0);
            cpu_cs_l : in  STD_LOGIC;
            cpu_rw_l : in  STD_LOGIC;
-			  vgrst : in STD_LOGIC; 
+           vgrst : in STD_LOGIC;
 			  vggo : in STD_LOGIC;
-			  halted : out STD_LOGIC;
-           xout : out  STD_LOGIC_VECTOR (9 downto 0);
-           yout : out  STD_LOGIC_VECTOR (9 downto 0);
+           halted : out STD_LOGIC;
+           xout14 : out STD_LOGIC_VECTOR (13 downto 0);
+           yout14 : out STD_LOGIC_VECTOR (13 downto 0);
            zout : out  STD_LOGIC_VECTOR (7 downto 0);
            rgbout : out  STD_LOGIC_VECTOR (2 downto 0);
-				dbg	: out std_logic_vector(15 downto 0);
+           is_dot_out : out STD_LOGIC;
+			  dbg	: out std_logic_vector(15 downto 0);
 			  clken: in STD_LOGIC;
            clk : in  STD_LOGIC;
 			  dn_addr           : in 	std_logic_vector(15 downto 0);
