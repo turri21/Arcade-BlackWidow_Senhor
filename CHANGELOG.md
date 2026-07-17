@@ -1,6 +1,21 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## Release [20260717]
+
+### Fixed
+- **Direct Video**: Fixed Direct Video output, which was not working in the previous release.
+- **Black Widow Mapping**: Corrected the default Fire Up and Fire Down mappings when loading the RBF without an MRA.
+- **Lunar Battle Controls**: Corrected the control wiring for the later prototype, restoring Start 1P/2P and the proper Fire, Thrust, and Shield inputs.
+- **Lunar Battle Settings**: Added the correct gameplay DIP switches and defaults, together with the Diagnostic Step control.
+
+### Added
+- **Direct Video Scan Rate**: Added explicit selection between 15 kHz (240p) and 31 kHz (480p) output when Direct Video is active.
+
+### Changed
+- **Core Name**: Changed the embedded core name to Black Widow, so core-specific `mister.ini` settings now use the `[Black Widow]` header.
+- **Fire Option**: Clarified the wording and intended use of both settings.
+
 ## Release [20260716]
 
 ### Update Notes

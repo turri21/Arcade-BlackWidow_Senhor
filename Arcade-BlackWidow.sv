@@ -180,7 +180,6 @@ wire [127:0] status;
 wire [1:0] ar = status[15:14];
 
 wire  [1:0] buttons;
-wire        forced_scandoubler;
 wire        direct_video;
 wire [21:0] gamma_bus;
 
@@ -247,14 +246,24 @@ assign VGA_HS = hs;
 assign VGA_VS = vs;
 assign VGA_DE = ~(hblank | vblank);
 
-// Debounced HDMI height and 120 Hz selection
+// Debounced output mode and 120 Hz selection
 reg [11:0] h_s1 = 0, h_s2 = 0;
 reg [11:0] hdmi_height_candidate = 0;
 reg [11:0] stable_height_reg = 0;
 reg [24:0] hdmi_height_timer = 0;
+reg direct_video_s1 = 0, direct_video_s2 = 0;
+reg direct_video_31khz_s1 = 0, direct_video_31khz_s2 = 0;
 
 always @(posedge clk_50) begin
-	h_s1 <= HDMI_HEIGHT;
+	direct_video_s1 <= direct_video;
+	direct_video_s2 <= direct_video_s1;
+	direct_video_31khz_s1 <= status[115];
+	direct_video_31khz_s2 <= direct_video_31khz_s1;
+
+	if (direct_video_s2)
+		h_s1 <= direct_video_31khz_s2 ? 12'd480 : 12'd240;
+	else
+		h_s1 <= HDMI_HEIGHT;
 	h_s2 <= h_s1;
 
 	if (h_s1 == h_s2) begin
@@ -351,12 +360,13 @@ wire [22:0] crt_custom2_settings = {
 
 `include "build_id.v" 
 localparam CONF_STR = {
-	"A.BWIDOW;;",
+	"Black Widow;;",
 	"-;",
 	"P3,Video Options;",
 	"P3-;",
 	"P3O[15:14],Aspect ratio,Optimized,Stretched,Pixel Perfect;",
 	"D3P3O[25],120Hz (720p only),Off,On;",
+	"h0P3O[115],Direct Video Scan Rate,15 kHz,31 kHz;",
 	"P3O[40:39],Buffer Mode,EOF + VBL,VBL,EOF;",
 	"P3-;",
 	"P3O[68:66],Profile,80s Cruise Control,80s Overdrive,Neon Fever Dream,Pinktoe Tarantula,Custom 1,Custom 2,Off,A Touch of CRT;",
@@ -420,7 +430,7 @@ localparam CONF_STR = {
 	"hEP3O[113:111],> Color Channels,RGB,RBG,GRB,GBR,BRG,BGR,B/W,Toe;",
 	"hEP3O[114],> Slot Mask,Off,On;",
 	"-;",
-	"h2O6,Fire,Buttons,Second Joystick;",
+	"h2O6,Fire Controls,Normal,P2 Controller;",
 	"h2-;",
 	"H1OR,Autosave Hiscores,Off,On;",
 	"P1,Pause options;",
@@ -430,9 +440,9 @@ localparam CONF_STR = {
 	"DIP;",
 	"-;",
 	"R0,Reset;",
-	"J1,Fire Right,Fire Left,Fire Down,Fire Up,Start 1,Start 2,Coin,Pause,Aux Coin;",
-	"jn,A,B,X,Y,Start,Select,R,L;",
-	"V,v2.00.",`BUILD_DATE
+	"J1,Fire Right,Fire Left,Fire Up,Fire Down,Start 1,Start 2,Coin,Pause,Aux Coin;",
+	"jn,A,Y,X,B,Start,Select,R,L;",
+	"V,v3.00.",`BUILD_DATE
 };
 
 
@@ -555,7 +565,6 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 		~hs_configured,
 		direct_video
 	}),
-	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
 	.direct_video(direct_video),
 
@@ -652,11 +661,8 @@ always @(*) begin
 	end
 	else if (mod_lunarbat) begin
 		input_0 = ~{ 1'b0, 1'b1, sw[2][1], sw[2][0], 2'b0, (m_coin | m_auxcoin), m_coin2 };
-		input_1 = 8'hff;
-		input_2 = 8'hff;
-		input_3 = { 1'b0, m_start2, m_start1, m_fire_left, m_fire_down, m_fire_right, m_right, m_left };
-		input_4 = 8'hff;
-		
+		input_3 = ~{ 3'b0, m_fire_left, m_left, m_right, m_fire_right, m_fire_down };
+		input_4 = ~{ 1'b0, m_start2, m_start1, 5'b0 };
 	end
 	else if (mod_spacduel) begin
 	end

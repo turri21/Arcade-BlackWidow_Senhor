@@ -18,6 +18,23 @@ Use the included MRA files so the DIP switches, auxiliary coin input, and diagno
 
 The new renderer supports 240p, 480p, 720p, and 1080p output. **1080p is recommended** for the highest detail. Compatible 720p displays can also use the optional 120Hz mode.
 
+For the highest-detail output, add the following under the exact `[Black Widow]` header in `mister.ini`. MiSTer's scaler filters and shadow mask should be disabled because the core provides its own CRT-effects pipeline and slot mask.
+
+```ini
+[Black Widow]
+video_mode=8
+vscale_mode=0
+vfilter_default=
+vfilter_vertical_default=
+vfilter_scanlines_default=
+shmask_default=
+shmask_mode_default=0
+```
+
+When Direct Video is active, use **Direct Video Scan Rate** in Video Options to select 15 kHz (240p) or 31 kHz (480p) output.
+
+When using a real CRT, consider starting with **A Touch of CRT** or a **Custom** profile. Most other profiles recreate characteristics that the tube itself already provides, including phosphor-mask structure, color response, bloom, and halo. A Custom profile lets you reduce or disable duplicated effects while retaining the processing that benefits your display.
+
 The **Profile** option provides five presets: A Touch of CRT, 80s Cruise Control, 80s Overdrive, Neon Fever Dream, and Pinktoe Tarantula. Custom 1 and Custom 2 expose the complete advanced effects controls, while Off bypasses the CRT effects.
 
 Pinktoe Tarantula uses the Toe color mode to give Black Widow's spider a distinctive pinktoe appearance.
@@ -28,10 +45,10 @@ Aspect ratio options are Optimized, Stretched, and Pixel Perfect.
 
 ## Controls
 
-Black Widow uses independent directional controls for movement and firing. The **Fire** option selects how the four firing directions are mapped:
+Black Widow uses independent directional controls for movement and firing. The **Fire Controls** option selects where the four firing directions are mapped:
 
-- **Buttons**: Uses four assignable inputs on the Player 1 controller. These can be face buttons or directions on a second analog stick.
-- **Second Joystick**: Uses the directional input of a separate controller assigned as Player 2.
+- **Normal**: Uses four independently assignable inputs on the same controller as movement. These may be mapped to a second stick or buttons.
+- **P2 Controller**: Uses the directional inputs of the controller assigned to Player 2. This mode is useful for arcade cabinet setups that provide separate Player 1 and Player 2 controls.
 
 Keyboard controls use MiSTer's joystick emulation and must be configured through **Define joystick buttons** in the Menu core. JAMMA/IPAC-style interfaces can use the standard arcade keyboard layout.
 
