@@ -1,3 +1,10 @@
+-=(BlackWidow_Senhor notes)=-
+
+Tested: Working Video 720p, 1080p & Sound.
+
+Dev notes: Clocks swapped in sys.tcl (not needed any more)
+
+___
 # Black Widow
 
 FPGA implementation of Atari's **Black Widow**, with support for **Gravitar** and **Lunar Battle**, for the [MiSTer FPGA](https://github.com/MiSTer-devel/Main_MiSTer/wiki) platform.
